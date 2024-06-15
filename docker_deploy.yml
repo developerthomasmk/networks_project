@@ -1,0 +1,45 @@
+---
+- name: Deploy Apache Docker Container
+  hosts: all
+  become: true
+  tasks:
+    - name: Ensure Docker is installed
+      apt:
+        name: docker.io
+        state: present
+        update_cache: yes
+
+    - name: Install Docker module for Python
+      pip:
+        name: docker
+        state: present
+
+    - name: Pull the latest Apache image
+      docker_image:
+        name: httpd
+        source: pull
+
+    - name: Create a custom network
+      docker_network:
+        name: custom_net
+        subnet: 172.168.10.0/30
+
+    - name: Run Apache container
+      docker_container:
+        name: apache_server
+        image: httpd
+        state: started
+        restart_policy: always
+        networks:
+          - name: custom_net
+        ports:
+          - "80:80"
+
+    - name: Copy the static web page
+      copy:
+        src: /path/to/your/index.html
+        dest: /usr/local/apache2/htdocs/index.html
+        owner: root
+        group: root
+        mode: '0644'
+      delegate_to: apache_server
